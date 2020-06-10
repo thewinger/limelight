@@ -207,19 +207,16 @@ struct window **window_manager_find_application_windows(struct window_manager *w
 
 void window_manager_add_application_windows(struct window_manager *wm, struct application *application)
 {
-    int window_count;
-    struct window **window_list = application_window_list(application, &window_count);
-    if (!window_list) return;
+    CFArrayRef window_list_ref = application_window_list(application);
+    if (!window_list_ref) return;
 
-    for (int window_index = 0; window_index < window_count; ++window_index) {
-        struct window *window = window_list[window_index];
-        if (!window) continue;
+    int window_count = CFArrayGetCount(window_list_ref);
+    for (int i = 0; i < window_count; ++i) {
+        AXUIElementRef window_ref = CFArrayGetValueAtIndex(window_list_ref, i);
+        uint32_t window_id = ax_window_id(window_ref);
+        if (!window_id || window_manager_find_window(wm, window_id)) continue;
 
-        if (!window->id || window_manager_find_window(wm, window->id)) {
-            window_destroy(window);
-            continue;
-        }
-
+        struct window *window = window_create(application, CFRetain(window_ref), window_id);
         if (window_is_popover(window) || window_is_unknown(window)) {
             debug("%s: ignoring window %s %d\n", __FUNCTION__, window->application->name, window->id);
             window_destroy(window);
@@ -237,7 +234,7 @@ void window_manager_add_application_windows(struct window_manager *wm, struct ap
         window_manager_add_window(wm, window);
     }
 
-    free(window_list);
+    CFRelease(window_list_ref);
 }
 
 bool window_manager_refresh_application_windows(struct window_manager *wm)
