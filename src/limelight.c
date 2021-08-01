@@ -51,7 +51,7 @@ static int client_send_message(int argc, char **argv)
         error("limelight-msg: failed to connect to socket..\n");
     }
 
-    int message_length = argc - 1;
+    int message_length = argc;
     int argl[argc];
 
     for (int i = 1; i < argc; ++i) {
@@ -67,6 +67,7 @@ static int client_send_message(int argc, char **argv)
         temp += argl[i];
         *temp++ = '\0';
     }
+    *temp++ = '\0';
 
     if (!socket_write_bytes(sockfd, message, message_length)) {
         error("limelight-msg: failed to send data..\n");
